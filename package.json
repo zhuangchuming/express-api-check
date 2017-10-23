@@ -1,0 +1,9 @@
+{
+  "name": "api desc",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "co-express": "^2.0.0",
+    "json5": "^0.5.1",
+  }
+}
