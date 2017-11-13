@@ -498,7 +498,7 @@ function isExist(path) {
 
 module.exports = {
     //带有 1、session.fromApp标志;2、请求参数中带有wsId的
-    authInit:init,
+    Init:init,
     readFile:readFile,//读文件,返回promise
     itFace:itFace,
     //对请求,根据接口文档进行验证
