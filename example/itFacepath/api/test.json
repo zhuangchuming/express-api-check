@@ -1,0 +1,32 @@
+{
+	"name":"测试接口2",
+	"url":"/app/api/test",
+	"method":"GET",
+	"params": {
+		"sId":{
+			"rem":"文件",
+			"need":true,//
+			"type":"number",
+			"len":[12,21]
+		}
+	},
+	"grant":"U.user",//登录的学校有权看
+	"error"://这里的error值得是ret的no返回码
+	{
+		
+	},
+	"ret":
+	{
+		"no": 200, //返回码
+		"msg":"出错或成功信息", //成功时可能无此项或为null
+		"data":[{
+            "count": 10,//收藏数,为0的时候，不返回这个参数
+            "_id": "5995316ed2422f0ec54a9755",
+            "name": "默认收藏",//分组名字
+            "id": 1,//分组id
+            "type": 1,//分组类型
+            "time": 1502949643136,//创建分组时间
+            "position": 1,//分组位置,数据会根据position排序好返回给前端
+		}]
+	}
+}

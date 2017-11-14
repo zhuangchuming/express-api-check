@@ -9,7 +9,7 @@
     "multiparty": "^4.1.3",
     "on-finished": "^2.3.0",
     "qs": "^6.5.1",
-    "co-formpart":"^1.0.0"
+    "co-formpart":"^1.0.1"
   },
   "description": "要求： 1、所有的接口文档都需要以正确的json文件编写，否则出现解析错误，无法对接口进行解析； 2、接口文档都放置在interFaceRoot的目录下；",
   "main": "index.js",

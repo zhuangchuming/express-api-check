@@ -115,7 +115,7 @@ function CheckParams(data, query,req,res)
         //     res.json({no: 400, msg: `错误的请求参数:${key}。`});
         //     return false;
         // }
-        if (par.rem == undefined) {//这里则认为是两层对象嵌套
+        if (undefined == par.rem && undefined == par.type) {//这里则认为是两层对象嵌套
             if(!CheckParams(data[key],query[key],req,res)){//递归
                 return false;
             }

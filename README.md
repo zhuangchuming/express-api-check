@@ -1,226 +1,235 @@
-要求：
-1、所有的接口文档都需要以正确的json文件编写，否则出现解析错误，无法对接口进行解析；
-2、接口文档都放置在interFaceRoot的目录下；
+> 声明：以JSON格式编写接口文档的方案，是我这边的陈老师给点子。后来个人兴趣，根据他提供的接口文档，写了本框架，以中间件的形式，插入到路由中；为了尊重版权，接口文档的定义大多数都与其同统一。
 
-客户端设置：
-POST、DELETE、PUT、PATCH等的请求，需要带上请求头：Content-Type:application/json; charset=UTF-8
+## 阅读本文条件：
+> 1、了解nodejs的express框架的“中间件”和“路由”机制；
 
+> 2、熟悉co-express思想；
 
-尚未完善的地方：
-1、没有对GET请求的参数进行一个验证，所以在GET参数中，不能设置 type等，只能设置need
+## 目标和功能：
+依据接口文档定义，调用接口时，在处理业务逻辑之前，对入口参数的进行：
+①参数校对；②初步权限检查；③请求参数类型转换；④上传文件时删除非法文件。⑤标准化错误返回；⑥接口访问统计；⑦避免去代码c
 
+## 使用方式：
+> 1、在app.js中初始化模块
 
+apiInit(itFaceUrl,itCPath,grantFunc,Debug,fileRoot);//初始化接口校验功能
 
-接口文档命名规则以及对应的路由：(按这个顺序去找文件目录)
-1、路由名字为接口文档的名字；
-2、路由的方法名+'_'+路由名；
-	eg: add.json、 add_GET.json 、add_POST.json 、add_DELETE.json, //add是我的路由名字
-		add.json 这个文件由于没有设置是哪个请求文件，故需要在add.json文件中的"method"方法中标明
-		eg : add.json文件是这么设置的 "method":"GET"，如下：
+> 2、以中间件的形式，在需要进行接口请求检测的路由前面使用：
 
-		express:例子
-			router.route('add')
-				.post((req,res)=>{ //这个对应add_POST.json 这个文件
+router.use(require('express-api-check').JustifyReq);//从这里开始对以下的接口根据接口文档定义约束请求。
 
-				})
-				.delete((req,res)=>{ //这个对应add_DELETE.json 这个文件
+> 3、在路由的结尾使用如下，可根据接口文档定义返回的错误编码，使其标准化错误返回：
 
-				})
-				.get((req,res)=>{ //这个对应add.json
+router.use(require('express-api-check').onError);
 
-				})
+## 初始化参数详解
+apiInit(itFaceUrl,itCPath,grantFunc,Debug,fileRoot);
+- itFaceUrl：接口文档根路径
+- itCPath：接口访问统计文件地址
+- grantFunc：接口授权访问的时候,授权未通过时可以进行其余业务逻辑特殊处理 eg:两台独立的系统需要安全访问对方接口时，可以通过用户uid,去服务器判断该用户是否已经登录。 该方法需返回的参数是：①true:授权通过,可以访问接口;②false:授权未通过。没有处理授权特殊情况的，给null。
+- Debug：设置为调试模式，则接口文档可以实时更新，生产环境需要设置为false;eg:process.env.NODE_ENV == 'production'? false:true
+- fileRoot:上传文件的根目录,不配置的话,采用默认
 
-		koa:例子
-			router.post('add',(req,res)=>{ //这个对应add_POST.json 这个文件
+# 接口文档定义规范：
+## 接口文档命名规则：
+首先： 多级的子路由为itFaceUrl接口文档根目录下的多级子目录；
 
-				})
-				.delete('add',(req,res)=>{ //这个对应add_DELETE.json 这个文件
+文件都是以.json格式出现
 
-				})
-				.get('add',(req,res)=>{ //这个对应add.json
+eg:![Image](https://github.com/zhuangchuming/express-api-check/blob/master/img/1.jpg)
+> json文件命名规则：
+1. 路由的最终名字为接口文档的名字。
+2. 如果有同名路由，可以使用：路由名+'_'+路由的方法名；eg:①test_POST；②test_DELETE；③test_PATCH等等命名。
 
-				})
+    eg:![Image](https://github.com/zhuangchuming/express-api-check/blob/master/img/2.jpeg)
 
-使用如下：
-1、在app.js中初始化：
-var authInit = require('./lib/ITFAuth').authInit;//先把接口验证文档引入
-let interFaceRoot = path.join(__dirname, '../gaomuxuexi-interface-desc/gaomuxuexi-app-student-server/');//指定当前服务器接口目录地址
-let itCFace = path.join(__dirname,'/routes/itCount.json');//指定一个接口调用统计文件目录
-/*
-*参数1、interFaceRoot 接口文档目录
-*参数2、itCFace 接口调用统计目录
-*参数3、接口授权访问的时候,授权未通过时可以特殊处理授权的调用方法 
-*		传入的参数：express(req),koa(ctx)
-*		方法返回值：true/false 指的是，是否通过授权
-*		该参数的适用场景  eg：单点登录,通过调用接口登录成功后设置 session；
-*参数4、设置是否为调试模式 (调试模式下，接口文档会实时读取)，发布正式版本的时候设置为false,默认为false
-*/
-authInit(interFaceRoot,itCFace,null,true);//初始化接口检测功能
+## 接口定义基本数据结构:
+    {
+        "name":"接口名称",//接口名称
+        "url":"/test",//接口调用url，应符合接口定义所在路径
+        "method":"POST",//接口调用方式(必需)
+        "params"://入口参数定义
+        {
+          
+        },
+        "grant":....,//接口权限定义，可使用js伪码
+        "error"://接口错误返回定义
+        {
+          
+        },
+        "ret"://接口返回
+        {
+          
+        }
+    }
+## 接口定义参数解析
+> name : String 接口名称
 
-2、在路由的index目录中，把需要对接口进行请求认证的，放在const paramsOauth = require('../lib/authUtils').paramsOauth;这个中间件的后面即可。
-如下：
-***const paramsOauth = require('../lib/authUtils').paramsOauth;
-***router.use(paramsOauth);//以下所有接口中需要对接口进行认证
-***之后，所有的路由都必须写在上面的中间件以下，才能使用如下的功能
+> rem : String 接口描述，
 
+> url : String 接口url，需注意命名规则
 
+> method : String 接口调用方式(必须定义)，大写,支持的取值： 'POST' | 'GET' | 'HEAD' | 'PUT'|'DELETE'| 'PATCH'等,
 
-接口文档参数说明如下：
+> grant : String | Array js伪码，定义权限检查规则，非必需
 
-method:指定请求方法
-{
-	作用：
-		指定请求的方法 
-
-	格式：
-		"method":"POST", "method":"GET"、"PATCH"、"PUT"、"DELETE"等等
-	注意：
-		get请求如果没有指定json文档，那么默认不对接口进行认证，这是因为服务器开发的时候可能会经常使用到模板，渲染一个模板完全没有必要去写一个接口文档。
-}
-
-params :参数下的类型定义
-{
-	1、enum：枚举型
-	作用：
-		指定值的所在范围  
-	格式：
-		一个数组内的多个可选参数，eg:[1,2,3,4]，["ios","android","all"]
-	使用举例：
-		"app":{
-			"rem":"使用的是什么app",
-			"need":true,
-			"type":"string",
-			"enum":["app","zwapp"]
-		}
-	2、type：
-	作用：
-		指定参数类型  
-	格式：
-		包含的类型有：number,string,object,boolean,array
-		eg:
-		"type":"string"
-		"type":"number"
-		"type":"object"
-	使用举例：
-		"app":{
-			"rem":"使用的是什么app",
-			"need":true,
-			"type":"string",
-			"enum":["app","zwapp"]
-		}
-		表示请求参数为：app,参数类型为string,并且指定app的值一定是 "app"或者"zwapp"
+```
+使用方法：
+1、使用U作为session的引用。
+eg ："grant":"U.fromApp"，表示请求需要被设置名为：fromApp 的session。
+eg : "grant":"U.user && 3 >= U.user.grade",表示用户必须已经登录（登录后设置user的session），并且用户的grade等级必须不大于3（假设grade=1是最大等级），这个grade是你设置的user对象下的一个参数，如下图：
+```
 
 
-	3、need：
-	作用：
-		指定参数是否必传  
-	格式：
-		"need":true
-		"need":false
-		缺省表示非必传
-	使用举例：
-		"content": {
-			"rem":"内容",
-			"need":true,
-			"type":"string"
+
+
+> error : {...}
+
+#### 作用：标准错误输出，不再通过代码来指定返回内容，同时能够保证错误返回与接口文档一致，高效维护接口文档。
+
+eg：
+    
+    "error":{
+        //默认返回
+	    "401":"您尚未登录，或者已经在别处登录",
+	    "400":"请求参数有误",
+	    "500":"服务器出错",
+	    "404":"访问的模板不存在",
+	    "403":"您无权访问该接口",
+	    //自定义返回
+	    "4001":"您已提交，不可重复提交",
+	    "5000":"提交次数过多...",
+	}
+> 触发条件：在接口请求中，通过抛出错误的形式：throw Error(errorkey)
+
+>
+    eg: throw Error(4001)
+    客户端收到如下：
+eg:![Image](https://github.com/zhuangchuming/express-api-check/blob/master/img/3.jpeg)
+    
+
+
+> params : {...} 入口参数定义，非必需，如未定义或定义为空对象表示无入口参数：
+
+#### params参数
+1. rem : String 备注（非必需）
+2. need : Boolean 检查该参数是否必须提交
+3. reg : String 正则合法检查，定义此参数必须符合的正则表达式
+4. len : String|Array 长度范围定义。
+> 控制参数的长度
+
+    格式如下：
+> 
+	//支持对象，也支持字符串
+    "len":"[1,null]",//表示1到正无穷
+	"len":[1,null],//表示1到正无穷
+	"len":"[null,8)",//表示最大值为8,不包含8
+	"len":"[1,8]",//表示值得范围在1到8之间
+    "len":[1,8],//表示1到8
+	"len":"[1,8)",//表示1到8,不包含8
+	"len":"(1,8)",//表示1到8,不包含1和8
+	"len":"(1,8]",//表示1到8,不包含1
+	注：[],()对null没有实际的作用
+    
+    1、当参数的type为"string"时，表示指定参数的长度范围
+	    eg:表示btnName为长度不能小于1，不能大于6的字符类型
+		"btnName":{
+		    "len":"[1,6]" // [1,6]
 		},
+        eg:表示btnName为长度不能小于1
+		"btnName":{
+		    "len":[1,null] // "[1,null]"
+		},
+	2、当参数的type为"number"、"int"、"float"时，表示指定参数的取值范围
+	    eg:表示id的取值范围在 -1到无穷大
+	        "id":{
+                "len":[-1,null]
+            },
+	3、当参数的type为"object"时，表示对象长度范围
+        "person":{//对象的长度大于1，且不大于8
+            "len":"(1,8]",
+        },
+    4、当参数的type为"array"时，表示数组长度范围
+        "ids":{
+            "len":"(1,8]",//表示数组长度大于1，且不大于8
+        }
+    5、当参数的type为"file"时，表示文件的字节数
+        "file":{
+            "len":[1,1048576]//表示文件长度不大于1M，
+        }
+	注意：boolean类型没有长度限制
+	
+5. type：String类型
+>     取值：array数组,object对象,number|int整型,float浮点,string字符串,file文件
+
+6. enum : Array 使用枚举方式定义可能的合法值
+数组成员应该和type定义的数据类型相同
 
 
-	4、rem：
-	作用：
-		接口功能描述
-	格式：
-		"rem":"内容",
+## 接口文档定义举例：
+> POST 提交文件
 
-
-	5、len ：长度
-	作用：
-		1、当type为"string"时，表示指定参数的长度范围
-			eg:表示btnName为长度不能小于1，不能大于6的字符类型
-			"btnName":{
-				"rem":"按钮名字",
-				"need":false,//
-				"type":"string",
-				"len":"[1,6]"
-			},
-		2、当type为"number"时，表示指定参数的取值范围
-			eg:表示id的取值范围在 -1到无穷大
-			"id":{//-1表示获取最新消息，也是分页的开始
-				"rem":"消息的起始id",
-				"need":true,//
-				"type":"number",
-				"len":[-1,null]
-			},
-		3、当type为"object"时，表示对象长度范围
-
-		注意：boolean类型没有长度限制
-	格式：
-		//支持对象，也支持字符串
-		"len":"[1,null]",//表示1到正无穷
-		"len":[1,null],//表示1到正无穷
-		"len":"[null,8)",//表示最大值为8,不包含8
-		"len":"[1,8]",//表示值得范围在1到8之间
-		"len":"[1,8)",//表示1到8,不包含8
-		"len":"(1,8)",//表示1到8,不包含1和8
-		"len":"(1,8]",//表示1到8,不包含1
-		注意：[],()对null没有实际的作用
-}
-
-//错误返回
-error:{
-	作用：
-		标准错误输出，不再通过代码来指定返回内容，同时能够保持错误返回与接口文档一致
-
-	格式：
-		"key":"name"
-
-	example:
-		"error":{
-			"401":"您尚未登录，或者已经在别处登录"
+    {
+	    "name":"测试接口",
+	    "url":"/app/test",
+	    "method":"POST",
+	    "params": {
+	        "sId":{
+	            "rem":"用户id",
+	            "need":true,//
+	            "type":"number",
+	            "len":[12,21]
+	        },
+		"file":{
+		    "rem":"上传的文件",
+		    "type":"file",//最大不超过1M
+		    "len":[1,1024000],
 		}
-		触发条件：throw Error(401)
+	    },
+	    "grant":"U.user",//登录允许访问
+	    "error"://这里的error值得是ret的no返回码
+	    {
+		
+	    },
+	    "ret":
+        {
+		"no": 200, //返回码
+		"msg":"出错或成功信息", //成功时可能无此项或为null
+	    }
+	}
+	
+>GET 获取参数
 
-	使用方式，通过代码的 throw Error(数字)来返回错误；
-}
-
-grant:接口授权
-{
-	作用：
-		直接限定访问接口的一方
-	格式：
-		grant的值是一个逻辑判断语句的字符串
-
-	example1:
-		"grant":"U.fromApp || (U.user5050 && 'employer'==U.user5050.grade)",
-		//1、学生可以访问；2、管理后台的employer等级的人才有权访问
-
-	example2:
-		"grant":"U.fromApp"
-		//1、该接口只允许app端访问；
-
-	example3:
-		"grant":"U.user5050 && 'employer'==U.user5050.grade"
-
-	使用方法：
-		1、U表示的是登录的session，在koa中是 U = ctx.session;
-		grant的内容只要是一句合法的逻辑语句就可以。
-}
-
-//该功能暂时未拓展
-ret:输出格式化
-{
-	作用：
-		程序通过接口文档ret参数，可以标准输出结果,防止错误返回出现
-	example：
-		"ret":
-		{
-			"no": 200, //返回码
-			"msg":"出错或成功信息", //成功时可能无此项或为null
-			"name":"用户姓名",
-			"mail":"用户邮箱",
+    {
+	    "name":"测试接口2",
+	    "url":"/app/api/test",
+	    "method":"GET",
+	    "params": {
+		"sId":{
+		    "rem":"文件",
+		    "need":true,//
+		    "type":"number",
+		    "len":[12,21]
 		}
-		接口返回接口完全会按照ret的标准来返回。由于接口返回参数可能存在变动，这里对这一块的定义还有待考量
-}
-
-
+	    },
+	    "grant":"U.user",//登录的学校有权看
+	    "error"://这里的error值得是ret的no返回码
+	    {
+		
+	    },
+	    "ret":
+	    {
+		"no": 200, //返回码
+		"msg":"出错或成功信息", //成功时可能无此项或为null
+		"data":[{
+            "count": 10,//收藏数,为0的时候，不返回这个参数
+            "_id": "5995316ed2422f0ec54a9755",
+            "name": "默认收藏",//分组名字
+            "id": 1,//分组id
+            "type": 1,//分组类型
+            "time": 1502949643136,//创建分组时间
+            "position": 1,//分组位置,数据会根据position排序好返回给前端
+		}]
+	    }
+    }
 
