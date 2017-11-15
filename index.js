@@ -79,7 +79,11 @@ function _TPL(req)
         // console.log('aaaa',`${interFaceRoot}${`${route}_${method}`}.json`)
         if(isExist(`${interFaceRoot}${route}.json`)){
             data = fs.readFileSync(`${interFaceRoot}${route}.json`, 'utf-8');
-            data = JSON5.parse(data);
+            try {
+                data = JSON5.parse(data);
+            }catch (err){
+                data = null;
+            }
             //如果请求方法对不上,则清空现有数据
             if(!data || data.method != method){//
                 data = null;
@@ -91,9 +95,17 @@ function _TPL(req)
         //如果本文件不存在,则通过匹配文件名加上请求参数
         if(!data && isExist(`${interFaceRoot}${`${route}_${method}`}.json`)){
             data = fs.readFileSync(`${interFaceRoot}${`${route}_${method}`}.json`, 'utf-8');
-            data = JSON5.parse(data);
-            itFace[`${route}_${method}`] = data;
-            routeName = `${route}_${method}`;
+            try {
+                data = JSON5.parse(data);
+            }catch (err){
+                data = null;
+            }
+            if(!data || data.method != method){//
+                data = null;
+            }else {
+                itFace[route] = data;
+                routeName = route;
+            }
         }
     }
     if(data && data.params){
@@ -132,9 +144,9 @@ function CheckParams(data, query,req,res)
             }
             if(val != undefined || val != null) {
                 //参数类型
-                if(par.type.toLowerCase()) {
+                if(par.type) {
                     try{
-                        switch(par.type){
+                        switch(par.type.toLowerCase()){
                             case 'number':
                             case 'int':
                                 if((par.type == 'number'||par.type =='int')&& parseInt(val)!=val)throw Error('类型错误');
@@ -170,9 +182,9 @@ function CheckParams(data, query,req,res)
                 //参数长度控制
                 if(par.len != undefined || par.len != null){
                     //接口文档在定义的时候定义为一个对象
-                    let ol = null;
+                    var ol = 0;
                     let name = "长度";
-                    switch (par.type){
+                    switch (par.type.toLowerCase()){
                         case 'array':
                             ol =  val.length;
                             name = "数组长度";
@@ -194,10 +206,14 @@ function CheckParams(data, query,req,res)
                         case 'string':
                             ol = val.length;
                             name = "字符串长度";
+                            break;
                         case 'file':
                             ol = val.size;//文件大小
                             name = "文件大小";
                             break;
+                        default:
+                            res.json({no: 400, msg: `${key}接口文档,len描述错误。`});
+                            return false;
 
                     }
                     if (par.len.constructor.name == 'Array')
@@ -215,7 +231,7 @@ function CheckParams(data, query,req,res)
                             res.json({no: 400, msg: `${key}接口文档,len描述错误。`});
                             return false;
                         }
-                    }else if(par.len.constructor.name == 'Object')
+                    }else if(par.len.constructor.name == 'String')
                     {
                         //接口文档定义为字符串
                         let k = par.len.trim().split(',');
@@ -285,11 +301,9 @@ function CheckParams(data, query,req,res)
                 }
 
                 //正则验证参数是否合法
-                if(par.reg){
-                    if(!eval(par.reg).test(val)){
-                        res.json({no: 400, msg: `${key}:格式错误`});
-                        return false;
-                    }
+                if(par.reg && !eval(par.reg).test((par.type == 'file' ? val.name:val))){
+                    res.json({no: 400, msg: `${key}:格式错误`});
+                    return false;
                 }
             }
         }
@@ -313,6 +327,19 @@ let JustifyReq =  wrap(function* (req,res, next)
             //接口访问计数
             itCount[routeName] = (itCount[routeName]?itCount[routeName]:0)+1;
 
+            //认证接口授权状况
+            let U = req.session;
+            if (TPL.grant && !eval(TPL.grant)) {//授权未通过
+                if(!itGrantFunc || ! (yield itGrantFunc(req))) {//itGrantFunc 这个是个异步方法
+                    if(Object.keys(U) <= 0){
+                        res.json({no: 401, msg: "您尚未登录"});
+                    }else {
+                        res.json({no: 403, msg: "您无权访问该接口"});
+                    }
+                    return;
+                }
+            }
+
             //有文件需要解析,并且删除多余文件
             if(typeis(req, 'multipart/form-data')){// TPL.hasFile 不一定要接口文件才去解析
                 isDebug && console.log('-----有form格式传递过来的请求')
@@ -329,18 +356,7 @@ let JustifyReq =  wrap(function* (req,res, next)
                 query = req.body;
             }
 
-            //认证接口授权状况
-            let U = req.session;
-            if (TPL.grant && !eval(TPL.grant)) {//授权未通过
-                if(!itGrantFunc || ! (yield itGrantFunc(req))) {//itGrantFunc 这个是个异步方法
-                    if(Object.keys(U) <= 0){
-                        res.json({no: 401, msg: "您尚未登录"});
-                    }else {
-                        res.json({no: 403, msg: "您无权访问该接口"});
-                    }
-                    return;
-                }
-            }
+
 
             //请求参数认证
             if (TPL.params) {
@@ -350,9 +366,6 @@ let JustifyReq =  wrap(function* (req,res, next)
                     }
                     return ;
                 }
-            }else{
-                res.json({no:500,msg:"接口文件错误"});
-                return;
             }
             next();
 
@@ -375,6 +388,9 @@ let JustifyReq =  wrap(function* (req,res, next)
             res.json({no: err.message, msg: TPL.error[err.message]})
         } else {
             res.json({no: 500, msg: err.message+'/n'+err.stack});
+        }
+        if(TPL.hasFile){
+            removeFormpart(TPL,req);
         }
     }
 })
@@ -447,7 +463,7 @@ async function readitCount()
     if(typeof itCount != "object") {
         itCount = JSON5.parse(itCount);
     }
-    console.log('itCount',itCount)
+    isDebug && console.log('itCount',itCount)
 }
 
 /**
@@ -471,6 +487,9 @@ function _onError(err, req, res, next)
 {
     // error handling
     let {TPL} = _TPL(req);
+    if(TPL && TPL.hasFile){
+        removeFormpart(TPL,req);
+    }
     // console.log('aaa',TPL,routeName)
     if (err.message && TPL && TPL.error && TPL.error[err.message]) {
         // console.log('tttt',data.error[err.message])
@@ -479,6 +498,7 @@ function _onError(err, req, res, next)
         }catch (e){
             res.json({no:500,msg:err.message});
         }
+        
     } else {
         res.json({no: 500, msg: err.message});//+err.stack
     }
