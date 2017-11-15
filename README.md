@@ -65,8 +65,6 @@ eg:![Image](https://github.com/zhuangchuming/express-api-check/blob/master/img/1
 ## 接口定义参数解析
 > name : String 接口名称
 
-> rem : String 接口描述，
-
 > url : String 接口url，需注意命名规则
 
 > method : String 接口调用方式(必须定义)，大写,支持的取值： 'POST' | 'GET' | 'HEAD' | 'PUT'|'DELETE'| 'PATCH'等,
@@ -75,7 +73,7 @@ eg:![Image](https://github.com/zhuangchuming/express-api-check/blob/master/img/1
 
 ```
 使用方法：
-1、使用U作为session的引用。
+1、需要使用"U"作为session的引用。
 eg ："grant":"U.fromApp"，表示请求需要被设置名为：fromApp 的session。
 eg : "grant":"U.user && 3 >= U.user.grade",表示用户必须已经登录（登录后设置user的session），并且用户的grade等级必须不大于3（假设grade=1是最大等级），这个grade是你设置的user对象下的一个参数，如下图：
 ```
@@ -167,69 +165,77 @@ eg:![Image](https://github.com/zhuangchuming/express-api-check/blob/master/img/3
 
 
 ## 接口文档定义举例：
-> POST 提交文件
+> POST 提交文件,创建用户信息示例
 
-    {
-	    "name":"测试接口",
-	    "url":"/app/test",
-	    "method":"POST",
-	    "params": {
-	        "sId":{
-	            "rem":"用户id",
-	            "need":true,//
-	            "type":"number",
-	            "len":[12,21]
-	        },
-		"file":{
-		    "rem":"上传的文件",
-		    "type":"file",//最大不超过1M
-		    "len":[1,1024000],
+```
+{
+	"name":"用户注册",
+	"url":"/apiCheck/user/register",
+	"method":"POST",
+	"params": {
+		"account":{
+			"rem":"账号",
+			"need":true,//必传
+			"type":"string",
+			"len":[4,12]
+		},
+		"pwd":{
+			"rem":"用户密码",
+			"need":true,
+			"type":"string",
+			"len":[6,18]
+		},
+		"pwd1":{
+			"rem":"再次确认用户密码",
+			"need":true,
+			"type":"string",//密码6-18位
+			"len":[6,18]
+		},
+		"type":{
+			"rem":"用户类型",
+			"need":true,
+			"type":"string",
+			"enum":["admin","custom"]//custom：普通用户，admin：管理员
+		},
+		"sex":{
+			"rem":"性别",
+			"need":true,
+			"type":"int",
+			"enum":[0,1]//0女，1男
+		},
+		"phone":{
+			"rem":"电话号码",
+			"type":"string",
+			"len":[11,11],//11位长度
+			"reg":"/^1[3|4|5|7|8][0-9]{9}$/"
+		},
+		"height":{
+			"rem":"身高",//cm
+			"type":"float",
+			"len":"(20,null]"
+		},
+		"head":{
+			"rem":"头像",
+			"type":"file",
+			"len":[0,204800],//不超过200k
+			"reg":"/\\.(jpe?g|png|gif)$/"//仅允许jpg,png,gif文件
+		},
+		"mail":{
+			"rem":"邮箱",
+			"type":"string",
+			"reg":"/^[^@]+@[^@]+\\.[^@]+$/"
 		}
-	    },
-	    "grant":"U.user",//登录允许访问
-	    "error"://这里的error值得是ret的no返回码
-	    {
-		
-	    },
-	    "ret":
-        {
+	},
+	"error"://这里的error值得是ret的no返回码
+	{
+		"5001":"账号已存在，请使用别的账号",
+		"5002":"两次输入的密码不一致，请重新输入"
+	},
+	"ret":
+	{
 		"no": 200, //返回码
 		"msg":"出错或成功信息", //成功时可能无此项或为null
-	    }
 	}
-	
->GET 获取参数
-
-    {
-	    "name":"测试接口2",
-	    "url":"/app/api/test",
-	    "method":"GET",
-	    "params": {
-		"sId":{
-		    "rem":"文件",
-		    "need":true,//
-		    "type":"number",
-		    "len":[12,21]
-		}
-	    },
-	    "grant":"U.user",//登录的学校有权看
-	    "error"://这里的error值得是ret的no返回码
-	    {
-		
-	    },
-	    "ret":
-	    {
-		"no": 200, //返回码
-		"msg":"出错或成功信息", //成功时可能无此项或为null
-		"data":[{
-            "count": 10,//收藏数,为0的时候，不返回这个参数
-            "_id": "5995316ed2422f0ec54a9755",
-            "name": "默认收藏",//分组名字
-            "id": 1,//分组id
-            "type": 1,//分组类型
-            "time": 1502949643136,//创建分组时间
-            "position": 1,//分组位置,数据会根据position排序好返回给前端
-		}]
-	    }
-    }
-
+}
+```
+其他使用，请查看示例工程：example 下面itFacepath接口文档目录。
