@@ -119,16 +119,16 @@ function _TPL(req)
 //接口参数类型认证
 //source:接口文档数据
 //qs:请求的参数
-function CheckParams(data, query,req,res)
+function CheckParams(data, query)
 {
     for (let key in data) {
         let par = data[key];
         // if (par == undefined) {//多余的参数返回错误
-        //     res.json({no: 400, msg: `错误的请求参数:${key}。`});
+        //     _formatErr({no: 400, msg: `错误的请求参数:${key}。`});
         //     return false;
         // }
         if (undefined == par.rem && undefined == par.type) {//这里则认为是两层对象嵌套
-            if(!CheckParams(data[key],query[key],req,res)){//递归
+            if(!CheckParams(data[key],query[key])){//递归
                 return false;
             }
         }else {
@@ -139,7 +139,7 @@ function CheckParams(data, query,req,res)
             let val = query[key];
             //检验必要的请求参数,非必要参数则不验证
             if (par.need && (val == null || val == undefined)) {
-                res.json({no: 400, msg: `缺少${key}参数。`})
+                _formatErr({no: 400, msg: `缺少${key}参数。`})
                 return false;
             }
             if(val != undefined || val != null) {
@@ -172,11 +172,11 @@ function CheckParams(data, query,req,res)
                                 // console.log('file',val.constructor.name);
                                 break;
                             default :
-                                res.json({no: 400, msg: `${key}接口文档type类型定义错误。`});
+                                _formatErr({no: 400, msg: `${key}接口文档type类型定义错误。`});
                                 return false;
 
                         }
-                    }catch(err){res.json({no: 400, msg: `${key}参数类型错误。`});return false;}
+                    }catch(err){_formatErr({no: 400, msg: `${key}参数类型错误。`});return false;}
                 }
 
                 //参数长度控制
@@ -212,7 +212,7 @@ function CheckParams(data, query,req,res)
                             name = "文件大小";
                             break;
                         default:
-                            res.json({no: 400, msg: `${key}接口文档,len描述错误。`});
+                            _formatErr({no: 400, msg: `${key}接口文档,len描述错误。`});
                             return false;
 
                     }
@@ -220,15 +220,15 @@ function CheckParams(data, query,req,res)
                     {//双闭区间有时候会解析成数组结构
                         if (par.len.length == 2 && par.len[0].constructor.name == 'Number' && par.len[1].constructor.name == 'Number') {
                             if (par.len[0] != undefined && ol < par.len[0]) {
-                                res.json({no: 400, msg: `${key}的${name}不能小于${par.len[0]}。`});
+                                _formatErr({no: 400, msg: `${key}的${name}不能小于${par.len[0]}。`});
                                 return false;
                             }
                             if (par.len[1] != undefined && ol > data[key].len[1]) {
-                                res.json({no: 400, msg: `${key}的${name}不能大于${par.len[1]}。`});
+                                _formatErr({no: 400, msg: `${key}的${name}不能大于${par.len[1]}。`});
                                 return false;
                             }
                         } else {
-                            res.json({no: 400, msg: `${key}接口文档,len描述错误。`});
+                            _formatErr({no: 400, msg: `${key}接口文档,len描述错误。`});
                             return false;
                         }
                     }else if(par.len.constructor.name == 'String')
@@ -236,7 +236,7 @@ function CheckParams(data, query,req,res)
                         //接口文档定义为字符串
                         let k = par.len.trim().split(',');
                         if (k.length > 2) {
-                            res.json({no: 400, msg: `${key}指定的长度有误。`});
+                            _formatErr({no: 400, msg: `${key}指定的长度有误。`});
                             return false;
                         }
 
@@ -258,12 +258,12 @@ function CheckParams(data, query,req,res)
 
                             if (k[0].substring(0, 1) == '[') {//左边闭区间
                                 if (ol < left) {
-                                    res.json({no: 400, msg: `${key}的${name}不能小于${left}。`});
+                                    _formatErr({no: 400, msg: `${key}的${name}不能小于${left}。`});
                                     return false;
                                 }
                             } else {
                                 if (ol <= left) {
-                                    res.json({no: 400, msg: `${key}的${name}不能小于等于${left}。`});
+                                    _formatErr({no: 400, msg: `${key}的${name}不能小于等于${left}。`});
                                     return false;
                                 }
                             }
@@ -271,18 +271,18 @@ function CheckParams(data, query,req,res)
                         if (right != 'null') {//判断是否是右无穷
                             if (k[1].substring(k[1].length - 1, k[1].length) == ']') {//右边闭区间
                                 if (ol > right) {
-                                    res.json({no: 400, msg: `${key}的${name}不能大于${right}。`});
+                                    _formatErr({no: 400, msg: `${key}的${name}不能大于${right}。`});
                                     return false;
                                 }
                             } else {
                                 if (ol >= right) {
-                                    res.json({no: 400, msg: `${key}的${name}不能大于等于${right}。`});
+                                    _formatErr({no: 400, msg: `${key}的${name}不能大于等于${right}。`});
                                     return false;
                                 }
                             }
                         }
                     }else{
-                        res.json({no: 400, msg: `${key}接口文档,len描述错误。`});
+                        _formatErr({no: 400, msg: `${key}接口文档,len描述错误。`});
                         return false;
                     }
                 }
@@ -295,14 +295,14 @@ function CheckParams(data, query,req,res)
                         }
                     }
                     if (i > par.enum.length) {//表示不能在枚举的范围内找到该值
-                        res.json({no: 400, msg: `${key}参数取值范围只能在${par.enum}。`});
+                        _formatErr({no: 400, msg: `${key}参数取值范围只能在${par.enum}。`});
                         return false;
                     }
                 }
 
                 //正则验证参数是否合法
                 if(par.reg && !eval(par.reg).test((par.type == 'file' ? val.name:val))){
-                    res.json({no: 400, msg: `${key}:格式错误`});
+                    _formatErr({no: 400, msg: `${key}:格式错误`});
                     return false;
                 }
             }
@@ -311,12 +311,14 @@ function CheckParams(data, query,req,res)
     return true;
 }
 
+let RES ;
 /**
 * 接口文档检测参数
 *
 * */
-let JustifyReq =  wrap(function* (req,res, next)
+let JustifyReq =  wrap(function* (req,res,next)
 {
+    RES = res;
     //解析接口文件
     let {TPL,routeName} = _TPL(req);
     isDebug && console.log('JustifyReq',TPL,routeName);
@@ -332,9 +334,9 @@ let JustifyReq =  wrap(function* (req,res, next)
             if (TPL.grant && !eval(TPL.grant)) {//授权未通过
                 if(!itGrantFunc || ! (yield itGrantFunc(req))) {//itGrantFunc 这个是个异步方法
                     if(Object.keys(U) <= 0){
-                        res.json({no: 401, msg: "您尚未登录"});
+                        _formatErr({no: 401, msg: "您尚未登录"});
                     }else {
-                        res.json({no: 403, msg: "您无权访问该接口"});
+                        _formatErr({no: 403, msg: "您无权访问该接口"});
                     }
                     return;
                 }
@@ -360,7 +362,7 @@ let JustifyReq =  wrap(function* (req,res, next)
 
             //请求参数认证
             if (TPL.params) {
-                if(!CheckParams(TPL.params,query,req,res)){
+                if(!CheckParams(TPL.params,query)){
                     if(TPL.hasFile){//有文件就需要移除文件
                         removeFormpart(TPL,req);//删除文件
                     }
@@ -376,7 +378,7 @@ let JustifyReq =  wrap(function* (req,res, next)
             if (req.method === 'GET') {//渲染模板时，不需要接口文档
                 next();
             }else{
-                res.json({no: 404, msg: "访问的模板不存在"})
+                _formatErr({no: 404, msg: "访问的模板不存在"})
             }
         }
 
@@ -385,9 +387,9 @@ let JustifyReq =  wrap(function* (req,res, next)
         //这里统一处理 接口文档的error参数返回
         if (err.message && TPL && TPL.error && TPL.error[err.message]) {
             // console.log('tttt',data.error[err.message])
-            res.json({no: err.message, msg: TPL.error[err.message]})
+            _formatErr({no: err.message, msg: TPL.error[err.message]})
         } else {
-            res.json({no: 500, msg: err.message+'/n'+err.stack});
+            _formatErr({no: 500, msg: err.message+'/n'+err.stack});
         }
         if(TPL.hasFile){
             removeFormpart(TPL,req);
@@ -444,11 +446,11 @@ function removeOtherFile(TPL,req)
  * @returns {{no,msg}}
  * @private
  */
-function _formatErr(errLst,err)
+function _formatErr(obj)
 {
-    if(Number==err.constructor)
-        err={no:err};
-    return {no:err.no,msg:errLst[err.no]||err.msg||defaultErrMsg[err.no]||'unnamed error'};
+    if(RES){
+        RES.json(obj);
+    }
 }
 
 //保存接口文档参数
@@ -494,13 +496,13 @@ function _onError(err, req, res, next)
     if (err.message && TPL && TPL.error && TPL.error[err.message]) {
         // console.log('tttt',data.error[err.message])
         try {
-            res.json({no: parseInt(err.message), msg: TPL.error[err.message]});
+            _formatErr({no: parseInt(err.message), msg: TPL.error[err.message]});
         }catch (e){
-            res.json({no:500,msg:err.message});
+            _formatErr({no:500,msg:err.message});
         }
         
     } else {
-        res.json({no: 500, msg: err.message});//+err.stack
+        _formatErr({no: 500, msg: err.message});//+err.stack
     }
 }
 
