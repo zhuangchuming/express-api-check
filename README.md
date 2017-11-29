@@ -344,4 +344,4 @@ eg:
 	}
 }
 ```
-其他使用，请查看示例工程：[example](https://github.com/zhuangchuming/express-api-check/example) 下面apiCheck接口文档目录。
+其他使用，请查看示例工程：[example](https://github.com/zhuangchuming/express-api-check/tree/master/example) 下面apiCheck接口文档目录。
