@@ -18,7 +18,7 @@ mongoose.connect("mongodb://localhost/test");
 var redisClient = redis.createClient({host: '127.0.0.1'});
 
 var apiInit = require('../index').Init;
-let interFaceRoot = path.join(__dirname, '/itFacepath/');//接口文档根目录
+let interFaceRoot = __dirname+'/';//接口文档根目录
 let itCFace = path.join(__dirname, '/routes/itCount.json');//接口统计地址
 let upFileDir = path.join(__dirname,'/public/uploads/');//上传文件根目录
 apiInit(interFaceRoot, itCFace, null, process.env.NODE_ENV == 'production'? false:true,upFileDir);//初始化接口检测功能
