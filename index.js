@@ -95,7 +95,7 @@ function _TPL(req)
         if(!data && isExist(path.join(`${interFaceRoot}${`${route}_${method}`}.json`))){
             data = fs.readFileSync(path.join(`${interFaceRoot}${`${route}_${method}`}.json`), 'utf-8');
             try {
-                data = eval(data);
+                data = eval('('+data+')');
             }catch (err){
                 data = null;
             }
@@ -327,7 +327,7 @@ let JustifyReq =  wrap(function* (req,res,next)
             itCount[routeName] = (itCount[routeName]?itCount[routeName]:0)+1;
 
             //判断url的一致性
-            if(TPL.url != req.originalUrl){
+            if(TPL.url != url.parse(req.originalUrl).pathname){
                 _formatErr({no: 400, msg: "请求的url与接口不一致"});
                 return;
             }
