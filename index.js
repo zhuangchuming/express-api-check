@@ -341,8 +341,8 @@ let JustifyReq =  wrap(function* (req,res,next)
 
             //获取请求的参数
             let $B=('GET'==req.method)?req.query:req.body;
-            $S=req.session || {};
-            $U=$S.user;
+            let $S=req.session || {};
+            let $U=$S.user;
             let err;
             //认证接口授权状况
             if(TPL.grant && (err=_CheckCnd(TPL.grant,403,'grant',$B,$S,$U))) {
