@@ -106,27 +106,29 @@ function _TPL(req)
                 routeName = route;
             }
         }
+        if(data){
+            //处理数据中,含有的特殊字符
+            let map={"{}":"$B","{S}":"$S","{U}":"$U","{X}":"$X"};
+            if(data.pretreat)
+            {
+                if(String==data.pretreat.constructor) data.pretreat=[data.pretreat];
+                data.pretreat=data.pretreat.join(";").replace(/{[SUX]?}/g,function($0)
+                {
+                    return map[$0];
+                });
+            }
+            if(data.grant)
+                data.grant=_formatCnd(data.grant,map);
+            if(data.check)
+                data.check=_formatCnd(data.check,map);
+        }
     }
-    if(data ){
+    if(data){
         if(data.params){
             for(let key in data.params){
                 if('file'==data.params[key].type) data.hasFile=1;
             }
         }
-        //处理数据中,含有的特殊字符
-        let map={"{}":"$B","{S}":"$S","{U}":"$U","{X}":"$X"};
-        if(data.pretreat)
-        {
-            if(String==data.pretreat.constructor) data.pretreat=[data.pretreat];
-            data.pretreat=data.pretreat.join(";").replace(/{[SUX]?}/g,function($0)
-            {
-                return map[$0];
-            });
-        }
-        if(data.grant)
-            data.grant=_formatCnd(data.grant,map);
-        if(data.check)
-            data.check=_formatCnd(data.check,map);
     }
     return {TPL:data,routeName:routeName}
 }
