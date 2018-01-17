@@ -321,7 +321,7 @@ let JustifyReq =  wrap(function* (req,res,next)
     RES = res;
     //解析接口文件
     let {TPL,routeName} = _TPL(req);
-    isDebug && console.log('JustifyReq',TPL,routeName);
+    // isDebug && console.log('JustifyReq',TPL,routeName);
     if(TPL&&typeof TPL != 'object'){_formatErr({no: 500, msg: TPL});return;}
     try {
         if (TPL && routeName) {
@@ -384,11 +384,11 @@ let JustifyReq =  wrap(function* (req,res,next)
                 return _formatErr(err);
             next();
         } else {
-            if ('GET'==req.method) {//渲染模板时，不需要接口文档
+            // if ('GET'==req.method) {//渲染模板时，不需要接口文档
                 next();
-            }else{
-                _formatErr({no: 404, msg: "访问的模板不存在"})
-            }
+            // }else{
+            //     _formatErr({no: 404, msg: "访问的模板不存在"})
+            // }
         }
 
     } catch (err) {

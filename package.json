@@ -1,6 +1,6 @@
 {
   "name": "express-api-check",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "author": "zhuangchuming <522236495@qq.com>",
   "dependencies": {
     "co-express": "^2.0.0",
