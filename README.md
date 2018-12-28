@@ -220,7 +220,8 @@ int或者float的使用举例
 ```
 
 7. type：String类型
->     取值：array数组,object对象,int整型,float浮点,string字符串,file文件
+>     取值：array数组,object对象（仅content-type:application/json时支持）
+,int整型,float浮点,string字符串,json字符串,file文件（仅content-type:multipart/form-data时支持）
 
 8. enum : Array 使用枚举方式定义可能的合法值
 ```

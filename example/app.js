@@ -13,7 +13,7 @@ var app = express();
 var nunjucks = require('nunjucks');
 var mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
-mongoose.connect("mongodb://localhost/test");
+mongoose.connect("mongodb://localhost/test",{useMongoClient:true});
 
 var redisClient = redis.createClient({host: '127.0.0.1'});
 
@@ -53,7 +53,7 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use('/apiCheck', express.static(path.join(__dirname, 'public')));
 app.use(session({
-    key: "appServer",
+    key: "exampleServer",
     store: new RedisStore({host: '127.0.0.1', client: redisClient, port: 6379}),
     secret: 'test here',
     resave: false,

@@ -211,12 +211,16 @@ function CheckParams(data, query)
             //检验必要的请求参数,非必要参数则不验证
             if (par.need&&null==val) {return`缺少${par.lbl?par.lbl:(par.rem?par.rem:key)}参数。`;}
             //若未传,且有默认值,则设置默认值,然后继续向下检验默认值
-            if(null!=par.default&&null==val){query[key]=par.default;val = par.default;RES.usedefault = true;}
+            if(null!=par.default&&null==val){query[key]=par.default;val = par.default;RES.usedefault = true;console.log('query[key]',query[key])}
+            if(null!=par.def&&null==val){query[key]=par.def;val = par.def;RES.usedefault = true;console.log('query[key]',query[key])}
+
             if(null==val){continue;}//未传的非必须参数不需要校验
             //参数类型
             if(par.type) {
+                par.type=par.type.toLowerCase()
+                let isObj=true;
                 try{
-                    switch(par.type.toLowerCase()){
+                    switch(par.type){
                         case 'number':
                         case 'int':
                             if((par.type == 'number'||par.type =='int')&& parseInt(val)!=val)throw Error('类型错误');
@@ -229,13 +233,34 @@ function CheckParams(data, query)
                             val = query[key];
                             break;
                         case 'string':if(val.constructor.name != 'String')throw Error('类型错误');break;
-                        case 'object':if(val.constructor.name != 'Object')throw Error('类型错误');break;
-                        case 'array':if(val.constructor.name != 'Array')throw Error('类型错误');break;
+                        case 'object':
+                            if(val.constructor != Object){
+                                try{
+                                    val=JSON.parse(val);
+                                }catch(err){isObj=false}
+                            }
+                            if(!isObj)throw Error('类型错误');break;
+                        case 'array':
+                            if(val.constructor != Array){
+                                try{
+                                    val=JSON.parse(val);
+                                }catch(err){isObj=false}
+                            }
+                            if(!isObj)throw Error('类型错误');break;
                         case 'file':if(val.path && !isExist(val.path)) throw Error('类型错误');break;
+                        case 'json':
+                            try{
+                                let t=JSON.parse(val);
+                                query[key]=t;
+                                val=t;
+                            }catch(err){
+                                throw Error('json格式错误');
+                            }
+                            break;
                         default :
                             if(val.constructor.name != 'String')throw Error('类型错误');
                     }
-                }catch(err){return `${errkey}参数类型错误。`;}
+                }catch(err){return `${errkey}参数${err?err.message:'类型错误'}。`;}
             }
             let msg;
             //参数长度控制
@@ -243,7 +268,7 @@ function CheckParams(data, query)
                 //接口文档在定义的时候定义为一个对象
                 var ol = 0;
                 let name = "长度";
-                switch (par.type.toLowerCase()){
+                switch (par.type){
                     case 'array':
                         ol =  val.length;
                         name = "数组长度";
@@ -274,7 +299,7 @@ function CheckParams(data, query)
             //枚举型判断参数是否在设置范围内
             if (par.enum && par.enum.indexOf(val)<0) {return `${errkey}参数只能是${par.enum}。`;}
             //正则验证参数是否合法
-            if(par.reg && !eval(par.reg).test((par.type == 'file' ? val.name:val))){return `${errkey}格式错误`;}
+            if(par.reg && !eval(par.reg).test((par.type == 'file' ? val.name:par.type=='json'?JSON.stringify(val):val))){return `${errkey}格式错误`;}
             // RES.usedefault = null;
         }
     }
@@ -384,24 +409,26 @@ let JustifyReq =  wrap(function* (req,res,next)
                 return _formatErr(err);
             next();
         } else {
-            // if ('GET'==req.method) {//渲染模板时，不需要接口文档
+            if ('GET'==req.method) {//渲染模板时，不需要接口文档
                 next();
-            // }else{
-            //     _formatErr({no: 404, msg: "访问的模板不存在"})
-            // }
+            }else{
+                _formatErr({no: 404, msg: "访问的模板不存在"})
+            }
         }
 
     } catch (err) {
         //这里统一处理 接口文档的error参数返回
-        if (err.message && TPL && TPL.error && TPL.error[err.message]) {
-            // console.log('tttt',data.error[err.message])
-            _formatErr({no: err.message, msg: TPL.error[err.message]})
-        } else {
-            _formatErr({no: 500, msg: err.message+'/n'+err.stack});
-        }
-        if(TPL.hasFile){
-            removeFormpart(TPL,req);
-        }
+        // if (err.message && TPL && TPL.error && TPL.error[err.message]) {
+        //     // console.log('tttt',data.error[err.message])
+        //     _formatErr({no: err.message, msg: TPL.error[err.message]})
+        // } else {
+        //     console.log('err catch',err)
+        //     _formatErr({no: 500, msg: err.message+'/n'+err.stack});
+        // }
+        // if(TPL && TPL.hasFile){
+        //     removeFormpart(TPL,req);
+        // }
+        next(err);//错误传递
     }
 })
 
@@ -508,7 +535,9 @@ function _onError(err, req, res, next)
         }
         
     } else {
-        _formatErr({no: 500, msg: err.message});//+err.stack
+        // console.error('error catch',err);
+        // _formatErr({no: 500, msg: "Something failed!"});//+err.stack
+        next(err);
     }
 }
 

@@ -3,3 +3,6 @@ example/routes/itCount.json
 .idea/
 .DS_Store
 example/public/uploads/
+*dump.rdb
+*.zip
+example/.DS_Store

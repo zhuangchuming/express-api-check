@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 let User = require('../../model/User');
 var wrap = require('co-express');
-
 router.post('/register',wrap(function *(req,res){
 	let body = req.body;
+	let t;
+	t.out;
 	if(yield User.findOne({account:body.account}).exec()){
 		throw Error(5001);
 	}

@@ -33,7 +33,7 @@
 			"rem":"性别",
 			"type":"int",
 			"enum":[0,1],//0女，1男
-			"default":1 //此处使用默认值,在没有值的情况下,会使用该值
+			"def":1 //此处使用默认值,在没有值的情况下,会使用该值
 		},
 		"phone":{
 			"rem":"电话号码",
@@ -69,6 +69,12 @@
 				"type":"int",
 				"range":[1,12]
 			}
+		},
+		"json":{
+			"rem":"测试",
+			"need":true,
+			"type":"json",
+			"reg":"/^\\[\\d+(,\\d)\\]*/"
 		}
 	},
 	"grant":"{S}",//{S} 为 session对象 req.session
